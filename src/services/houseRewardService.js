@@ -124,10 +124,36 @@ const findUpline = async (wallet_id, obj, houseValue, userId, childWallet) => {
 const rewordsend = async (wallet, amount) => {
     try {
         let currentRefId = wallet;
+        const d1 = await ref.aggregate([
+            {
+                $match: {
+                    refId: wallet,
+                    amount: amount,
+                },
+            },
+            {
+                $graphLookup: {
+                    from: "refs",
+                    startWith: "$refId",
+                    connectFromField: "refId",
+                    depthField: "depthleval",
+                    connectToField: "supporterId",
+                    maxDepth: 4,
+                    as: "referBY",
+                    restrictSearchWithMatch: { amount: amount }
+                }
+            }
+        ]
+        )
         let ids = []
+        const filteredData = d1[0]['referBY'].sort((a, b) => b.uid - a.uid)
         for (let i = 0; i < 5; i++) { // Assuming a maximum of 6 levels deep
+
+            console.log("d1d1d1d1d1", filteredData[60]["refId"], filteredData[61]["refId"]);
             const agg = [{ '$match': { 'refId': currentRefId, amount: amount } }];
             let result = await ref.aggregate(agg);
+            const aggq = [{ '$match': { 'refId': currentRefId, amount: amount } }];
+            let result1 = await ref.aggregate(aggq);
 
             if (result.length === 0) break; // Exit if no more supporters found
 
@@ -155,9 +181,12 @@ const rewordsend = async (wallet, amount) => {
                 let par = i == 1 ? 10 : i == 2 ? 20 : i == 3 ? 20 : 50
                 let finalamount = Number(planName2 * par / 100)
                 let tokenAmount = Number(finalamount * 10 ** 18)
-                ids.push({ id: result[0]["supporterId"]?.split(".")[0], amount: tokenAmount, leval: i })
+                if (result[0]["supporterId"] !== filteredData[60]["refId"]) {
+                    if (result[0]["supporterId"] !== filteredData[61]["refId"]) {
+                        ids.push({ id: result[0]["supporterId"]?.split(".")[0], amount: tokenAmount, leval: i })
+                    }
+                }
             }
-
         }
         setTimeout(async () => {
             for (let index = 0; index < ids.length; index++) {
@@ -171,11 +200,8 @@ const rewordsend = async (wallet, amount) => {
     }
 };
 
-
 async function sendTOKEN(wallte_Address, amount, i) {
     try {
-
-        console.log("wallte_Address, amount.wallte_Address, amount", wallte_Address);
         const contract = await new web3bnb.eth.Contract(TOKENABI, contractaddress);
         const account = web3bnb.eth.accounts.privateKeyToAccount(privateKey)
         const transaction = contract.methods.adddata('22', '1', wallte_Address, amount, false);
