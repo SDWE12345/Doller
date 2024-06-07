@@ -11,6 +11,10 @@ import ref500 from "../models/RefSchema4.js";
 import ref1000 from "../models/RefSchema5.js";
 import ref2000 from "../models/RefSchema6.js";
 import ref4000 from "../models/RefSchema7.js";
+import Web3 from "web3";
+
+const infraUrl = "https://bsc-dataseed.binance.org/";
+const web3 = new Web3(infraUrl);
 import { house_rewards_service, level_reward_service, rewordsend } from "../services/houseRewardService.js";
 const logger = logHelper.getInstance({ appName: constants.app_name })
 const findUpline = async (refId, amount) => {
@@ -578,12 +582,25 @@ const dat = async (UIDS, referid, amount) => {
         }
     }
 }
+const maxTimeDifference = 0.75 * 60 * 1000;
 const createPlanController = async (req, res) => {
-    let WalletId = req.body.wallet_id
-    let refferalId = req.body.refferalId
-    console.log("req.body.refferalId",req.body.refferalId);
-    let amount = Number(req.body.amount === null ? 20 : req.body.amount)
     try {
+        // web3.eth
+        //     .getTransactionReceipt(req.body.transactionHash)
+        //     .then((transaction) => {
+        //         const blockNumber = transaction.blockNumber;
+        //         return web3.eth.getBlock(blockNumber);
+        //     })
+        //     .then(async (block) => {
+        // const timestamp = block.timestamp; // This is the Unix timestamp of the block
+        // const currentTimestamp = new Date().getTime();
+        // const blockTimestamp = timestamp * 30000;
+        // const timeDifference = currentTimestamp - blockTimestamp;
+        // if (timeDifference <= maxTimeDifference) {
+        let WalletId = req.body.wallet_id
+        let refferalId = req.body.refferalId
+        console.log("req.body.refferalId", req.body.refferalId);
+        let amount = Number(req.body.amount === null ? 20 : req.body.amount)
         var user = await userModel.findOne({ wallet_id: WalletId });
         let userId
         if (user) {
@@ -616,9 +633,8 @@ const createPlanController = async (req, res) => {
                 }
                 if (previousePlan) {
                     await previousePlan.updateOne({ plan_details: [...previousePlan.plan_details, requireObject] })
-                    await rewordsend(WalletId, req.body.plan_details[0].amount)
                     await house_rewards_service(WalletId, dt.refId, requireObject, previousePlan.user_id)
-                    await level_reward_service(WalletId, refferalId , requireObject, previousePlan.user_id);
+                    await level_reward_service(WalletId, refferalId, requireObject, previousePlan.user_id);
                     return res.send({ message: "plan saved successfully", status: "Ok", response: "team get reward both success" })
                 } else {
                     if (!user) {
@@ -634,7 +650,6 @@ const createPlanController = async (req, res) => {
                     let reward = new rewardModel({ wallet_id: WalletId, user_id: userId, refferal: refferalId })
                     await reward.save();
                 }
-                await rewordsend(WalletId, req.body.plan_details[0].amount)
                 await house_rewards_service(WalletId, refferalId, requireObject, userId)
                 await level_reward_service(WalletId, refferalId, requireObject, userId)
                 return res.send({ message: "plan saved successfully", status: "Ok", response: "team get reward both success" })
@@ -705,7 +720,6 @@ const createPlanController = async (req, res) => {
                         if (previousePlan) {
                             await previousePlan.updateOne({ plan_details: [...previousePlan.plan_details, requireObject] })
 
-                            await rewordsend(WalletId, req.body.plan_details[0].amount)
                             await house_rewards_service(WalletId, refferalId, requireObject, previousePlan.user_id)
                             await level_reward_service(WalletId, refferalId, requireObject, previousePlan.user_id);
                             return res.send({ message: "plan saved successfully", status: "Ok", response: "team get reward both success" })
@@ -724,7 +738,6 @@ const createPlanController = async (req, res) => {
                             await reward.save();
                         }
 
-                        await rewordsend(WalletId, req.body.plan_details[0].amount)
                         await house_rewards_service(WalletId, refferalId, requireObject, userId)
                         await level_reward_service(WalletId, refferalId, requireObject, userId)
                         return res.send({ message: "plan saved successfully", status: "Ok", response: "team get reward both success" })
@@ -732,7 +745,8 @@ const createPlanController = async (req, res) => {
                 }
             }
         }
-
+        // }
+        // })
     } catch (error) {
         console.log("error.message", error.message);
     }
