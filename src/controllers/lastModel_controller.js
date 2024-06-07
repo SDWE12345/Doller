@@ -192,7 +192,7 @@ const setdata = async (plandata, a, b, ref1, ref2, res, amount) => {
             },
         },
     ];
-    console.log("b === ,", b === "" ? a : a + b,);
+    console.log("b === ,sssssss", b === "" ? a : a + b,);
     let memberDetails = await ref1.aggregate(pipeline);
     let memberDetails12 = await ref1.aggregate([
         {
@@ -257,48 +257,37 @@ const setdata = async (plandata, a, b, ref1, ref2, res, amount) => {
         },
     ]
     )
-    // for (let index = 0; index < memberDetails12.length; index++) {
-    //     const el = memberDetails12[index]
-    //     const refExists = await ref1.findOne({ refId: a });
-    //     const refExists1 = await ref2.findOne({ refId: a });
-    //     if (b === "") {
-    //         el.referBY?.sort((a, b) => {
-    //             return new Date(a.createdAt) - new Date(b.createdAt);
-    //         }).forEach(async (item, index) => {
-    //             const refIdExists = refExists.missedusers.some(missedUser => missedUser.refId === item.refId);
-    //             if (!refIdExists) {
-    //                 refExists.missedusers.push({
-    //                     uid: item.uid,
-    //                     refId: item.refId,
-    //                     mainId: item.mainId,
-    //                     supporterId: item.supporterId,
-    //                     depthleval: item.depthleval,
-    //                     status: item.depthleval !== 0 ? index === 60 ? "stored" : index === 61 ? "stored" : "done" : "send to upline",
-    //                     createdAt: item.createdAt
-    //                 });
-    //             }
-    //         })
-    //     } else {
-    //         el.referBY?.sort((a, b) => {
-    //             return new Date(a.createdAt) - new Date(b.createdAt);
-    //         }).forEach(async (item, index) => {
-    //             console.log("refExists1", refExists1);
-    //             const refIdExists = refExists.missedusers.some(missedUser => missedUser.refId === item.refId);
-    //             if (!refIdExists) {
-    //                 refExists.missedusers.push({
-    //                     uid: item.uid,
-    //                     refId: item.refId,
-    //                     mainId: item.mainId,
-    //                     supporterId: item.supporterId,
-    //                     depthleval: item.depthleval,
-    //                     status: refExists1 !== null ? item.depthleval !== 0 ? index === 60 ? "stored" : index === 61 ? "stored" : "done" : "send to upline" : "missed",
-    //                     createdAt: item.createdAt
-    //                 });
-    //             }
-    //         })
-    //     }
-    //     await refExists?.save(); // Save changes to the document
-    // }
+    for (let index = 0; index < memberDetails12.length; index++) {
+        const el = memberDetails12[index];
+        const refExists = await ref1.findOne({ refId: a, amount: amount });
+
+        if (b === "") {
+            const sortedReferBy = el.referBY?.sort((a, b) => {
+                return new Date(a.createdAt) - new Date(b.createdAt);
+            });
+
+            for (let itemIndex = 0; itemIndex < sortedReferBy.length; itemIndex++) {
+                const item = sortedReferBy[itemIndex];
+                const refIdExists = refExists.missedusers.some(missedUser => missedUser.refId === item.refId);
+
+                if (!refIdExists) {
+                    refExists.missedusers.push({
+                        uid: item.uid,
+                        refId: item.refId,
+                        mainId: item.mainId,
+                        supporterId: item.supporterId,
+                        depthleval: item.depthleval,
+                        status: item.depthleval !== 0 ? itemIndex === 60 ? "stored" : itemIndex === 61 ? "stored" : "done" : "send to upline",
+                        createdAt: item.createdAt
+                    });
+                }
+            }
+        }
+
+        console.log("refExists", refExists);
+        await refExists?.save(); // Save changes to the document
+    }
+
     if (!memberDetails) {
         return res.send({ message: "team not found" })
     }
@@ -321,7 +310,7 @@ const setdata1122233 = async (plandata, a, b, ref1, ref2) => {
             },
             {
                 $graphLookup: {
-                    from: plandata,
+                    from: "refId",
                     startWith: "$refId",
                     connectFromField: "refId",
                     depthField: "depthleval",
@@ -375,6 +364,7 @@ const setdata1122233 = async (plandata, a, b, ref1, ref2) => {
         ]
         )
         const refExists = await ref1.findOne({ refId: a });
+        console.log("refExistsrefExists", refExists);
         for (let index = 0; index < memberDetails12.length; index++) {
             const el = memberDetails12[index]
             const refExists1 = await ref2.findOne({ refId: a });
@@ -459,14 +449,7 @@ const setdata11 = async (req, res) => {
         console.log("a", a);
         console.log("a + b", a + b);
         const promises = [
-            setdata1122233("refs", a, b, ref, ref40),
-            setdata1122233("ref40", a, b, ref, ref100),
-            setdata1122233("ref100", a, b, ref, ref200),
-            setdata1122233("ref200", a, b, ref200, ref500),
-            setdata1122233("ref500", a, b, ref500, ref1000),
-            setdata1122233("ref1000", a, b, ref1000, ref2000),
-            setdata1122233("ref2000", a, b, ref2000, ref4000),
-            setdata1122233("ref4000", a, b, ref4000)
+            setdata1122233("refs", a, b, ref, 20),
         ];
         // Wait for all promises to resolve
         const results = await Promise.all(promises);
@@ -1220,6 +1203,21 @@ const lastModelController = async (req, res) => {
     let walletId = (req.body.wallet_id).toLowerCase();
     let refferalId = (req.body.refferal_id).toLowerCase();
     let amount = 20
+
+    const id = (req.body.wallet_id).toLowerCase();
+    let memberDetails1 = await userModel.findOne({ user_id: id });
+    console.log(memberDetails1);
+    let a = memberDetails1.wallet_id.slice('.');
+    let b = "";
+
+    console.log("b", b);
+    console.log("a", a);
+    console.log("a + b", a + b);
+    const promises = [
+        setdata1122233("refs", a, b, ref, 20),
+    ];
+    // Wait for all promises to resolve
+    const results = await Promise.all(promises);
     try {
         const referid = refferalId;
         const newid = walletId;
