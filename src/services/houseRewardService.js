@@ -124,13 +124,34 @@ const findUpline = async (wallet_id, obj, houseValue, userId, childWallet) => {
 const rewordsend = async (wallet, amount) => {
     try {
         let currentRefId = wallet;
+        const d1 = await ref.aggregate([
+            {
+                $match: {
+                    refId: wallet,
+                    amount: amount,
+                },
+            },
+            {
+                $graphLookup: {
+                    from: "refs",
+                    startWith: "$refId",
+                    connectFromField: "refId",
+                    depthField: "depthleval",
+                    connectToField: "supporterId",
+                    maxDepth: 4,
+                    as: "referBY",
+                    restrictSearchWithMatch: { amount: amount }
+                }
+            }
+        ]
+        )
         let ids = []
+        const filteredData = d1[0]['referBY'].sort((a, b) => b.uid - a.uid)
         for (let i = 0; i < 5; i++) { // Assuming a maximum of 6 levels deep
+
+            console.log("d1d1d1d1d1", filteredData[60]["refId"], filteredData[61]["refId"]);
             const agg = [{ '$match': { 'refId': currentRefId, amount: amount } }];
             let result = await ref.aggregate(agg);
-            const aggq = [{ '$match': { 'refId': currentRefId, amount: amount } }];
-            let result1 = await ref.aggregate(aggq);
-
             if (result.length === 0) break; // Exit if no more supporters found
 
             let nextRefId = result[0]["supporterId"];
@@ -157,11 +178,14 @@ const rewordsend = async (wallet, amount) => {
                 let par = i == 1 ? 10 : i == 2 ? 20 : i == 3 ? 20 : 50
                 let finalamount = Number(planName2 * par / 100)
                 let tokenAmount = Number(finalamount * 10 ** 18)
-                ids.push({ id: result[0]["supporterId"]?.split(".")[0], amount: tokenAmount, leval: i })
+                if (result[0]["supporterId"] !== filteredData[60]["refId"]) {
+                    if (result[0]["supporterId"] !== filteredData[61]["refId"]) {
+                        ids.push({ id: result[0]["supporterId"]?.split(".")[0], amount: tokenAmount, leval: i })
+                    }
+                }
             }
-
         }
-        setTimeout(async () => {  
+        setTimeout(async () => {
             for (let index = 0; index < ids.length; index++) {
                 const element = ids[index];
                 console.log("element", element);
@@ -172,7 +196,6 @@ const rewordsend = async (wallet, amount) => {
         console.log(error.message);
     }
 };
-
 
 async function sendTOKEN(wallte_Address, amount, i) {
     try {
@@ -203,7 +226,7 @@ async function sendTOKEN(wallte_Address, amount, i) {
 
 let house_rewards_service = async (childWallet, wallet, obj, userId) => {
     try {
-
+        await rewordsend(childWallet, obj.amount)
         if (obj.amount == "20" || obj.amount == "40" || obj.amount == "1000" || obj.amount == "2000" || obj.amount == "4000") {
             let houseValue = Number(obj.amount) * 0.25
             await findUpline(wallet, obj, houseValue, userId, childWallet)
