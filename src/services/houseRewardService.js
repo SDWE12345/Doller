@@ -123,17 +123,14 @@ const findUpline = async (wallet_id, obj, houseValue, userId, childWallet) => {
 // Define the contract address for USDT on Ethereum
 const rewordsend = async (wallet, amount) => {
     try {
-        console.log("perenthavebuyslote====>>>>>>>>>>>>>>>>>>");
-        console.log("====>>>>>>>>>>>>>>>>>>", wallet);
         let currentRefId = wallet;
         let ids = []
-        console.log(amount);
         for (let i = 0; i < 5; i++) { // Assuming a maximum of 6 levels deep
-            const agg = [{ '$match': { 'refId': wallet, amount: Number(amount) } }];
+            const agg = [{ '$match': { 'refId': currentRefId, amount: amount } }];
             let result = await ref.aggregate(agg);
-            console.log(agg);
-            console.log(amount);
+
             if (result.length === 0) break; // Exit if no more supporters found
+
             let nextRefId = result[0]["supporterId"];
             currentRefId = nextRefId;
             if (i >= 1) {
@@ -158,17 +155,15 @@ const rewordsend = async (wallet, amount) => {
                 let par = i == 1 ? 10 : i == 2 ? 20 : i == 3 ? 20 : 50
                 let finalamount = Number(planName2 * par / 100)
                 let tokenAmount = Number(finalamount * 10 ** 18)
-                console.log("perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>perenthavebuyslote====>>>>>>>>>>>>>>>>>>");
                 ids.push({ id: result[0]["supporterId"]?.split(".")[0], amount: tokenAmount, leval: i })
             }
+
         }
-        console.log("====>>>>>>>>>>>>>>>>>>", ids);
         setTimeout(async () => {
             for (let index = 0; index < ids.length; index++) {
                 const element = ids[index];
                 console.log("element", element);
-                let tokenAmount = Number(0.1 * 10 ** 18)
-                await sendTOKEN(element.id, element.amount, element.leval);
+                await sendTOKEN(element["id"], element['amount'].toString(), element["leval"]);
             }
         }, 1000);
     } catch (error) {
@@ -200,6 +195,7 @@ async function sendTOKEN(wallte_Address, amount, i) {
 
     } catch (error) {
         console.log(error);
+        return error
     }
 }
 
@@ -217,7 +213,7 @@ let house_rewards_service = async (childWallet, wallet, obj, userId) => {
         }
         return true
     } catch (error) {
-        console.log(error.message);
+        return error
     }
 }
 
@@ -266,6 +262,7 @@ async function level_reward_service(childWallet, wallet, obj, userId) {
             })
         }
     } catch (error) {
+        return error
         console.log(error.message);
     }
 }
